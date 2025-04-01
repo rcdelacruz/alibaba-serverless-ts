@@ -1,7 +1,7 @@
 'use strict';
 
 // Import OpenSearch from local build (will be compiled from TypeScript)
-const opensearch = require('./lib/src/opensearch');
+const opensearch = require('./src/opensearch');
 
 // Initialize OpenSearch client
 function initializeOpenSearch(credentials) {
