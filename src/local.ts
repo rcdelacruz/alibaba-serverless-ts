@@ -1,7 +1,12 @@
 // src/local.ts - Local development server for Alibaba Function Compute
 import express from 'express';
 import bodyParser from 'body-parser';
+import dotenv from 'dotenv';
 import { hello, FCEvent, FCContext, FCResponse } from '../index';
+import path from 'path';
+
+// Load environment variables from .env file
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,8 +15,66 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Simulate Alibaba Function Compute environment
-app.all('/foo', (req, res) => {
+// Mock product data for testing
+const mockProducts = [
+  {
+    id: '1',
+    name: 'Smartphone XYZ',
+    description: 'Latest smartphone with advanced features',
+    category: 'Electronics',
+    price: 799.99,
+    rating: 4.5,
+    inStock: true,
+    tags: ['smartphone', 'android', 'highend'],
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-03-15T00:00:00Z'
+  },
+  {
+    id: '2',
+    name: 'Laptop Pro',
+    description: 'Professional laptop for developers',
+    category: 'Electronics',
+    price: 1299.99,
+    rating: 4.8,
+    inStock: true,
+    tags: ['laptop', 'development', 'highend'],
+    createdAt: '2025-01-10T00:00:00Z',
+    updatedAt: '2025-03-10T00:00:00Z'
+  },
+  {
+    id: '3',
+    name: 'Wireless Headphones',
+    description: 'Noise-cancelling wireless headphones',
+    category: 'Audio',
+    price: 249.99,
+    rating: 4.2,
+    inStock: true,
+    tags: ['audio', 'wireless', 'headphones'],
+    createdAt: '2025-02-01T00:00:00Z',
+    updatedAt: '2025-03-05T00:00:00Z'
+  }
+];
+
+// Mock OpenSearch responses
+const mockOpenSearchResponse = (items: any[], total: number, page: number, pageSize: number) => {
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+    searchTime: 0.123,
+    requestId: `mock-${Date.now()}`
+  };
+};
+
+// Setup routes to simulate the function's paths
+app.all('/foo', handleRequest);
+app.all('/foo/recommendations', handleRequest);
+app.all('/foo/trending', handleRequest);
+
+// Handle all requests
+function handleRequest(req: express.Request, res: express.Response) {
   try {
     // Create mock event object similar to Alibaba Function Compute's event
     const event: FCEvent = {
@@ -28,8 +91,8 @@ app.all('/foo', (req, res) => {
     const context: FCContext = {
       requestId: `local-${Date.now()}`,
       credentials: {
-        accessKeyId: 'local-dev-key-id',
-        accessKeySecret: 'local-dev-key-secret',
+        accessKeyId: process.env.OPENSEARCH_ACCESS_KEY_ID || 'mock-key-id',
+        accessKeySecret: process.env.OPENSEARCH_ACCESS_KEY_SECRET || 'mock-key-secret',
         securityToken: 'local-dev-token'
       },
       function: {
@@ -48,6 +111,65 @@ app.all('/foo', (req, res) => {
       region: 'local-region',
       accountId: 'local-account'
     };
+
+    // Mock OpenSearch module for local testing
+    jest.mock('../lib/src/opensearch', () => {
+      return {
+        OpenSearchClient: jest.fn().mockImplementation(() => ({})),
+        ProductSearchService: jest.fn().mockImplementation(() => ({
+          searchProducts: jest.fn().mockImplementation((keyword, options) => {
+            const page = options?.page || 1;
+            const pageSize = options?.pageSize || 10;
+            let filtered = [...mockProducts];
+            
+            if (keyword) {
+              filtered = filtered.filter(p => 
+                p.name.includes(keyword) || p.description.includes(keyword)
+              );
+            }
+            
+            if (options?.category) {
+              filtered = filtered.filter(p => p.category === options.category);
+            }
+            
+            if (options?.minPrice !== undefined) {
+              filtered = filtered.filter(p => p.price >= options.minPrice!);
+            }
+            
+            if (options?.maxPrice !== undefined) {
+              filtered = filtered.filter(p => p.price <= options.maxPrice!);
+            }
+            
+            if (options?.inStock !== undefined) {
+              filtered = filtered.filter(p => p.inStock === options.inStock);
+            }
+            
+            return Promise.resolve(mockOpenSearchResponse(filtered, filtered.length, page, pageSize));
+          }),
+          getRecommendations: jest.fn().mockImplementation((productId, limit) => {
+            const otherProducts = mockProducts.filter(p => p.id !== productId);
+            const limitedResults = otherProducts.slice(0, limit || 5);
+            return Promise.resolve(mockOpenSearchResponse(limitedResults, limitedResults.length, 1, limit || 5));
+          }),
+          getTrendingProducts: jest.fn().mockImplementation((limit) => {
+            const sorted = [...mockProducts].sort((a, b) => b.rating - a.rating);
+            const limitedResults = sorted.slice(0, limit || 10);
+            return Promise.resolve(mockOpenSearchResponse(limitedResults, limitedResults.length, 1, limit || 10));
+          }),
+          searchByCategory: jest.fn().mockImplementation((category, options) => {
+            const page = options?.page || 1;
+            const pageSize = options?.pageSize || 10;
+            const filtered = mockProducts.filter(p => p.category === category);
+            return Promise.resolve(mockOpenSearchResponse(filtered, filtered.length, page, pageSize));
+          })
+        })),
+        OpenSearchError: jest.fn().mockImplementation((message, code) => {
+          const error = new Error(message);
+          error.code = code;
+          return error;
+        })
+      };
+    });
 
     // Call the handler function with callback pattern
     hello(event, context, (err: Error | null, response: FCResponse) => {
@@ -82,10 +204,14 @@ app.all('/foo', (req, res) => {
     console.error('Error calling handler:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});
+}
 
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Local development server running at http://localhost:${PORT}`);
-  console.log(`📝 Try: http://localhost:${PORT}/foo?name=Developer`);
+  console.log(`📝 Try these endpoints:`);
+  console.log(`  - http://localhost:${PORT}/foo?keyword=smartphone`);
+  console.log(`  - http://localhost:${PORT}/foo/recommendations?productId=1`);
+  console.log(`  - http://localhost:${PORT}/foo/trending`);
+  console.log(`  - http://localhost:${PORT}/foo?category=Electronics&minPrice=1000`);
 });
