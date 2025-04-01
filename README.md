@@ -46,13 +46,29 @@ aliyun_account_id=<your-account-id>
 
 Important: Make sure this is an absolute path to your home directory.
 
-### 3. Test Locally
+### 3. Local Development
+
+#### Simple JavaScript Testing
 
 You can test your function locally without deploying:
 
 ```bash
 node -e "console.log(require('./index').hello({}, {requestId: 'local-test'}, (err, res) => console.log(res)))"
 ```
+
+#### TypeScript Development Server
+
+This project includes a TypeScript development server that simulates the Alibaba Cloud Function Compute environment:
+
+```bash
+# Start the development server with hot-reloading
+npm run dev
+```
+
+The server will start at http://localhost:3000, and you can test your function by visiting:
+http://localhost:3000/foo?name=YourName
+
+Any changes to the TypeScript files will automatically restart the server.
 
 ### 4. Deploy to Alibaba Cloud
 
@@ -66,7 +82,10 @@ npm run deploy
 .
 ├── serverless.yml   # Serverless Framework configuration
 ├── package.json     # Project dependencies
-└── index.js         # Function handler
+├── index.js         # Function handler (JavaScript)
+├── tsconfig.json    # TypeScript configuration
+└── src/
+    └── local.ts     # Local development server
 ```
 
 ## Function Code
@@ -102,6 +121,8 @@ If you encounter issues:
 2. **Plugin not found**: Make sure you've run `npm run install-plugin` to install the plugin directly from GitHub.
 
 3. **Region errors**: You may need to add a `region` field to the `provider` section in serverless.yml if you're getting region-related errors.
+
+4. **TypeScript development server issues**: If you're having problems running the local TypeScript server, make sure you've installed all dependencies with `npm install`.
 
 ## Resources
 
