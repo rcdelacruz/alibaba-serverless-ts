@@ -1,7 +1,7 @@
 {
   "name": "serverless-aliyun-hello-world",
   "version": "1.0.0",
-  "description": "Serverless hello world sample for Alibaba Cloud Functions",
+  "description": "Serverless hello world sample for Alibaba Cloud Functions with OpenSearch",
   "main": "index.js",
   "scripts": {
     "test": "echo \"No tests specified\" && exit 0",
@@ -16,15 +16,22 @@
   "keywords": [
     "serverless",
     "alibaba",
-    "aliyun"
+    "aliyun",
+    "opensearch"
   ],
   "dependencies": {
     "body-parser": "^1.20.2",
-    "express": "^4.18.2"
+    "crypto": "^1.0.1",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "https": "^1.0.0",
+    "jest-mock": "^29.5.0",
+    "querystring": "^0.2.1"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.5",
     "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.0",
     "@types/node": "^18.15.0",
     "serverless": "^3.28.1",
     "ts-node": "^10.9.1",
