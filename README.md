@@ -1,10 +1,10 @@
-# Serverless Alibaba Cloud Functions with TypeScript
+# Serverless Alibaba Cloud Functions Hello World
 
-This is a sample project demonstrating how to use the Serverless Framework with TypeScript to deploy functions to Alibaba Cloud Function Compute.
+This is a simple Hello World example for Alibaba Cloud Functions using the Serverless Framework.
 
 ## Prerequisites
 
-- Node.js (v14 or later)
+- Node.js (v8 or later)
 - npm or yarn
 - An Alibaba Cloud account
 - Alibaba Cloud CLI configured with your credentials
@@ -19,7 +19,7 @@ npm install
 
 2. Configure your Alibaba Cloud credentials:
 
-Create a credentials file at `~/.aliyun/credentials` with the following format:
+Create a credentials file at `~/.aliyun_credentials` with the following format:
 
 ```ini
 [default]
@@ -36,40 +36,23 @@ export ALICLOUD_SECRET_KEY=<your-access-key-secret>
 export ALICLOUD_ACCOUNT_ID=<your-account-id>
 ```
 
-## Local Development
+## Local Testing
 
-You can test your functions locally without deploying to Alibaba Cloud:
-
-1. Start the local development server:
+You can test your function locally without deploying:
 
 ```bash
-npm run dev
-```
-
-This will start a local Express server that simulates the Alibaba Cloud Function environment. The server will:
-- Watch for file changes and automatically restart
-- Map HTTP routes to your handler functions
-- Simulate the event and context objects
-
-2. Test your function:
-
-```bash
-# Using curl
-curl http://localhost:3000/hello?name=YourName
-
-# Or open in your browser
-http://localhost:3000/hello?name=YourName
+node -e "console.log(require('./index').hello({}, {requestId: 'local-test'}, (err, res) => console.log(res)))"
 ```
 
 ## Deployment
 
-1. Build the TypeScript code:
+Deploy to Alibaba Cloud:
 
 ```bash
-npm run build
+npm run deploy
 ```
 
-2. Deploy to Alibaba Cloud:
+Or directly:
 
 ```bash
 serverless deploy
@@ -79,13 +62,9 @@ serverless deploy
 
 ```
 .
-├── serverless.yml        # Serverless Framework configuration
-├── package.json          # Project dependencies
-├── tsconfig.json         # TypeScript configuration
-└── src/
-    ├── local.ts          # Local development server
-    └── handlers/
-        └── hello.ts      # Function handler
+├── serverless.yml   # Serverless Framework configuration
+├── package.json     # Project dependencies
+└── index.js         # Function handler
 ```
 
 ## Testing
@@ -94,16 +73,17 @@ After deployment, you can test your function using:
 
 ```bash
 # Get the endpoint URL from the deploy output
-curl https://<your-endpoint-url>/hello?name=YourName
+curl https://<your-endpoint-url>/foo
 ```
 
 Expected response:
 
 ```json
 {
-  "message": "Hello, YourName!",
-  "timestamp": "2025-04-01T12:34:56.789Z",
-  "requestId": "abc123..."
+  "message": "Hello from Alibaba Cloud Functions!",
+  "input": {...},
+  "requestId": "abc123...",
+  "timestamp": "2025-04-01T12:34:56.789Z"
 }
 ```
 
