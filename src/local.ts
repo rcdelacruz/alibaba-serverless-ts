@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Simulate Alibaba Function Compute environment
-app.all('/foo', async (req, res) => {
+app.all('/foo', (req, res) => {
   try {
     // Create mock event object similar to Alibaba Function Compute's event
     const event: FCEvent = {
@@ -53,7 +53,8 @@ app.all('/foo', async (req, res) => {
     hello(event, context, (err: Error | null, response: FCResponse) => {
       if (err) {
         console.error('Error in function execution:', err);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: 'Internal Server Error' });
+        return;
       }
       
       try {
