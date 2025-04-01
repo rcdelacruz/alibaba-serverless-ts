@@ -4,6 +4,7 @@ import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import { hello, FCEvent, FCContext, FCResponse } from '../index';
 import path from 'path';
+import { mock, mockModule } from './local-helpers';
 
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -14,6 +15,12 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Define custom error for TypeScript compatibility
+interface CustomError extends Error {
+  code?: number;
+  requestId?: string;
+}
 
 // Mock product data for testing
 const mockProducts = [
@@ -55,12 +62,6 @@ const mockProducts = [
   }
 ];
 
-// Define custom error for TypeScript compatibility
-interface CustomError extends Error {
-  code?: number;
-  requestId?: string;
-}
-
 // Mock OpenSearch responses
 const mockOpenSearchResponse = (items: any[], total: number, page: number, pageSize: number) => {
   return {
@@ -73,6 +74,68 @@ const mockOpenSearchResponse = (items: any[], total: number, page: number, pageS
     requestId: `mock-${Date.now()}`
   };
 };
+
+// Create mock implementations
+const createMockOpenSearchModule = () => {
+  return {
+    OpenSearchClient: mock.fn().mockImplementation(() => ({})),
+    ProductSearchService: mock.fn().mockImplementation(() => ({
+      searchProducts: mock.fn().mockImplementation((keyword: string, options: any) => {
+        const page = options?.page || 1;
+        const pageSize = options?.pageSize || 10;
+        let filtered = [...mockProducts];
+        
+        if (keyword) {
+          filtered = filtered.filter(p => 
+            p.name.includes(keyword) || p.description.includes(keyword)
+          );
+        }
+        
+        if (options?.category) {
+          filtered = filtered.filter(p => p.category === options.category);
+        }
+        
+        if (options?.minPrice !== undefined) {
+          filtered = filtered.filter(p => p.price >= options.minPrice!);
+        }
+        
+        if (options?.maxPrice !== undefined) {
+          filtered = filtered.filter(p => p.price <= options.maxPrice!);
+        }
+        
+        if (options?.inStock !== undefined) {
+          filtered = filtered.filter(p => p.inStock === options.inStock);
+        }
+        
+        return Promise.resolve(mockOpenSearchResponse(filtered, filtered.length, page, pageSize));
+      }),
+      getRecommendations: mock.fn().mockImplementation((productId: string, limit: number) => {
+        const otherProducts = mockProducts.filter(p => p.id !== productId);
+        const limitedResults = otherProducts.slice(0, limit || 5);
+        return Promise.resolve(mockOpenSearchResponse(limitedResults, limitedResults.length, 1, limit || 5));
+      }),
+      getTrendingProducts: mock.fn().mockImplementation((limit: number) => {
+        const sorted = [...mockProducts].sort((a, b) => b.rating - a.rating);
+        const limitedResults = sorted.slice(0, limit || 10);
+        return Promise.resolve(mockOpenSearchResponse(limitedResults, limitedResults.length, 1, limit || 10));
+      }),
+      searchByCategory: mock.fn().mockImplementation((category: string, options: any) => {
+        const page = options?.page || 1;
+        const pageSize = options?.pageSize || 10;
+        const filtered = mockProducts.filter(p => p.category === category);
+        return Promise.resolve(mockOpenSearchResponse(filtered, filtered.length, page, pageSize));
+      })
+    })),
+    OpenSearchError: mock.fn().mockImplementation((message: string, code: number) => {
+      const error = new Error(message) as CustomError;
+      error.code = code;
+      return error;
+    })
+  };
+};
+
+// Mock the OpenSearch module
+const mockOpenSearchModule = mockModule('../lib/src/opensearch', createMockOpenSearchModule());
 
 // Setup routes to simulate the function's paths
 app.all('/foo', handleRequest);
@@ -118,67 +181,20 @@ function handleRequest(req: express.Request, res: express.Response) {
       accountId: 'local-account'
     };
 
-    // Mock OpenSearch module for local testing
-    jest.mock('../lib/src/opensearch', () => {
-      return {
-        OpenSearchClient: jest.fn().mockImplementation(() => ({})),
-        ProductSearchService: jest.fn().mockImplementation(() => ({
-          searchProducts: jest.fn().mockImplementation((keyword, options) => {
-            const page = options?.page || 1;
-            const pageSize = options?.pageSize || 10;
-            let filtered = [...mockProducts];
-            
-            if (keyword) {
-              filtered = filtered.filter(p => 
-                p.name.includes(keyword) || p.description.includes(keyword)
-              );
-            }
-            
-            if (options?.category) {
-              filtered = filtered.filter(p => p.category === options.category);
-            }
-            
-            if (options?.minPrice !== undefined) {
-              filtered = filtered.filter(p => p.price >= options.minPrice!);
-            }
-            
-            if (options?.maxPrice !== undefined) {
-              filtered = filtered.filter(p => p.price <= options.maxPrice!);
-            }
-            
-            if (options?.inStock !== undefined) {
-              filtered = filtered.filter(p => p.inStock === options.inStock);
-            }
-            
-            return Promise.resolve(mockOpenSearchResponse(filtered, filtered.length, page, pageSize));
-          }),
-          getRecommendations: jest.fn().mockImplementation((productId, limit) => {
-            const otherProducts = mockProducts.filter(p => p.id !== productId);
-            const limitedResults = otherProducts.slice(0, limit || 5);
-            return Promise.resolve(mockOpenSearchResponse(limitedResults, limitedResults.length, 1, limit || 5));
-          }),
-          getTrendingProducts: jest.fn().mockImplementation((limit) => {
-            const sorted = [...mockProducts].sort((a, b) => b.rating - a.rating);
-            const limitedResults = sorted.slice(0, limit || 10);
-            return Promise.resolve(mockOpenSearchResponse(limitedResults, limitedResults.length, 1, limit || 10));
-          }),
-          searchByCategory: jest.fn().mockImplementation((category, options) => {
-            const page = options?.page || 1;
-            const pageSize = options?.pageSize || 10;
-            const filtered = mockProducts.filter(p => p.category === category);
-            return Promise.resolve(mockOpenSearchResponse(filtered, filtered.length, page, pageSize));
-          })
-        })),
-        OpenSearchError: jest.fn().mockImplementation((message, code) => {
-          const error = new Error(message) as CustomError;
-          error.code = code;
-          return error;
-        })
-      };
-    });
+    // Override require to return our mock when the OpenSearch module is requested
+    const originalRequire = require;
+    (global as any).require = function(id: string) {
+      if (id === '../lib/src/opensearch') {
+        return mockOpenSearchModule;
+      }
+      return originalRequire(id);
+    };
 
     // Call the handler function with callback pattern
     hello(event, context, (err: Error | null, response: FCResponse) => {
+      // Restore the original require
+      (global as any).require = originalRequire;
+      
       if (err) {
         console.error('Error in function execution:', err);
         res.status(500).json({ error: 'Internal Server Error' });
