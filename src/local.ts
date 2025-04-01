@@ -135,7 +135,7 @@ const createMockOpenSearchModule = () => {
 };
 
 // Mock the OpenSearch module
-const mockOpenSearchModule = mockModule('../lib/src/opensearch', createMockOpenSearchModule());
+const mockOpenSearchModule = createMockOpenSearchModule();
 
 // Setup routes to simulate the function's paths
 app.all('/foo', handleRequest);
@@ -181,46 +181,56 @@ function handleRequest(req: express.Request, res: express.Response) {
       accountId: 'local-account'
     };
 
-    // Override require to return our mock when the OpenSearch module is requested
+    // Ensure the require for './src/opensearch' returns our mock module
+    // Monkey patch the require system
     const originalRequire = require;
-    (global as any).require = function(id: string) {
-      if (id === '../lib/src/opensearch') {
+    const mockedRequire = function(id: string) {
+      if (id === './src/opensearch') {
         return mockOpenSearchModule;
       }
       return originalRequire(id);
     };
+    
+    // Replace the global require with our mocked version
+    (global as any).require = mockedRequire;
 
-    // Call the handler function with callback pattern
-    hello(event, context, (err: Error | null, response: FCResponse) => {
-      // Restore the original require
-      (global as any).require = originalRequire;
-      
-      if (err) {
-        console.error('Error in function execution:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-        return;
-      }
-      
-      try {
-        // Set headers from the response
-        if (response.headers) {
-          Object.entries(response.headers).forEach(([key, value]) => {
-            res.setHeader(key, value);
-          });
+    try {
+      // Call the handler function with callback pattern
+      hello(event, context, (err: Error | null, response: FCResponse) => {
+        // Restore the original require
+        (global as any).require = originalRequire;
+        
+        if (err) {
+          console.error('Error in function execution:', err);
+          res.status(500).json({ error: 'Internal Server Error' });
+          return;
         }
         
-        // Send the response
-        const statusCode = response.statusCode || 200;
-        const body = response.isBase64Encoded 
-          ? Buffer.from(response.body, 'base64') 
-          : response.body;
+        try {
+          // Set headers from the response
+          if (response.headers) {
+            Object.entries(response.headers).forEach(([key, value]) => {
+              res.setHeader(key, value);
+            });
+          }
           
-        res.status(statusCode).send(body);
-      } catch (error) {
-        console.error('Error sending response:', error);
-        res.status(500).json({ error: 'Error processing response' });
-      }
-    });
+          // Send the response
+          const statusCode = response.statusCode || 200;
+          const body = response.isBase64Encoded 
+            ? Buffer.from(response.body, 'base64') 
+            : response.body;
+            
+          res.status(statusCode).send(body);
+        } catch (error) {
+          console.error('Error sending response:', error);
+          res.status(500).json({ error: 'Error processing response' });
+        }
+      });
+    } catch (e) {
+      // Restore the original require in case of error
+      (global as any).require = originalRequire;
+      throw e;
+    }
     
   } catch (error) {
     console.error('Error calling handler:', error);
