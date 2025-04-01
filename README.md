@@ -70,11 +70,112 @@ http://localhost:3000/foo?name=YourName
 
 Any changes to the TypeScript files will automatically restart the server.
 
-### 4. Deploy to Alibaba Cloud
+## Deployment to Alibaba Cloud
+
+### Step 1: Prepare for Deployment
+
+Before deploying, make sure:
+
+1. You have installed the plugin:
+   ```bash
+   npm run install-plugin
+   ```
+
+2. Your credentials file is properly set up at `~/.aliyun_credentials`
+
+3. You have an active Alibaba Cloud account with Function Compute service enabled
+
+### Step 2: Deploy the Function
 
 ```bash
 npm run deploy
 ```
+
+This command will:
+1. Package your code according to the specifications in `serverless.yml`
+2. Create necessary resources in Alibaba Cloud (service, function, trigger)
+3. Upload your code to Alibaba Cloud Function Compute
+4. Set up the HTTP trigger
+
+### Step 3: Access Your Function
+
+After successful deployment, the Serverless Framework will output the endpoint URL:
+
+```
+Service Information
+service: serverless-aliyun-hello-world
+stage: dev
+region: cn-shanghai
+stack: serverless-aliyun-hello-world-dev
+api gateway:
+  URL: https://<api-gateway-id>.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/serverless-aliyun-hello-world/hello/foo
+functions:
+  hello: serverless-aliyun-hello-world-hello
+```
+
+You can now access your function using this URL:
+```
+https://<api-gateway-id>.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/serverless-aliyun-hello-world/hello/foo?name=YourName
+```
+
+### Step 4: Update Your Function
+
+After making changes to your function code:
+
+1. Test locally first:
+   ```bash
+   npm run dev
+   ```
+
+2. When satisfied, deploy the changes:
+   ```bash
+   npm run deploy
+   ```
+
+### Step 5: Remove Your Function
+
+If you want to remove the deployed function and associated resources:
+
+```bash
+npx serverless remove
+```
+
+This will clean up all resources created by the Serverless Framework.
+
+## Troubleshooting Deployment
+
+### Common Issues
+
+1. **Region not available**: 
+   - In `serverless.yml`, change the region to one that's available in your account (e.g., `cn-shanghai`, `cn-hangzhou`, `cn-beijing`)
+
+2. **Permission denied**:
+   - Make sure your access key has proper permissions for Function Compute, RAM, and API Gateway services
+   - You might need to add these permissions in the Alibaba Cloud console
+
+3. **Deployment timeout**:
+   - The first deployment might take longer due to resource creation
+   - Try running the deployment again
+
+4. **Cannot find credentials**:
+   - Double-check that your `~/.aliyun_credentials` file has the correct format and is in your home directory
+   - Use absolute path if needed
+
+5. **Plugin installation issues**:
+   - If installing from GitHub fails, try:
+     ```bash
+     npm install --save-dev github:aliyun/serverless-aliyun-function-compute
+     ```
+
+### Debug Logs
+
+For more detailed logs during deployment:
+
+```bash
+SLS_DEBUG=* npm run deploy
+```
+
+This will show you exactly what's happening during the deployment process.
 
 ## Project Structure
 
@@ -87,42 +188,6 @@ npm run deploy
 └── src/
     └── local.ts     # Local development server
 ```
-
-## Function Code
-
-The function code is simple, responding to HTTP GET requests with a JSON payload:
-
-```javascript
-module.exports.hello = (event, context, callback) => {
-  const response = {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      message: 'Hello from Alibaba Cloud Functions!',
-      input: event,
-      requestId: context.requestId,
-      timestamp: new Date().toISOString()
-    }),
-    isBase64Encoded: false
-  };
-
-  callback(null, response);
-};
-```
-
-## Troubleshooting
-
-If you encounter issues:
-
-1. **Credentials not found**: Make sure your credentials file is properly formatted and placed at `~/.aliyun_credentials` (with underscore).
-
-2. **Plugin not found**: Make sure you've run `npm run install-plugin` to install the plugin directly from GitHub.
-
-3. **Region errors**: You may need to add a `region` field to the `provider` section in serverless.yml if you're getting region-related errors.
-
-4. **TypeScript development server issues**: If you're having problems running the local TypeScript server, make sure you've installed all dependencies with `npm install`.
 
 ## Resources
 
