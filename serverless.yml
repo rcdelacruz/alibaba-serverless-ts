@@ -1,10 +1,15 @@
-service: serverless-aliyun-hello-world
+service: serverless-opensearch-api
 
 provider:
   name: aliyun
   runtime: nodejs10
   credentials: ~/.aliyun_credentials
-  region: cn-shanghai # Default region, can be overridden
+  region: cn-shanghai
+  environment:
+    OPENSEARCH_ACCESS_KEY_ID: ${env:OPENSEARCH_ACCESS_KEY_ID}
+    OPENSEARCH_ACCESS_KEY_SECRET: ${env:OPENSEARCH_ACCESS_KEY_SECRET}
+    OPENSEARCH_HOST: ${env:OPENSEARCH_HOST, 'opensearch.ap-southeast-1.aliyuncs.com'}
+    OPENSEARCH_APP_NAME: ${env:OPENSEARCH_APP_NAME}
 
 plugins:
   - serverless-aliyun-function-compute
@@ -16,18 +21,28 @@ package:
     - .git/**
     - src/**
     - node_modules/**
-    - lib/**
     - tsconfig.json
     - index.d.ts
+    - deploy.sh
+    - .env
   include:
     - index.js
+    - lib/**
 
 functions:
-  hello:
+  search:
     handler: index.hello
     events:
       - http:
-          path: /foo
+          path: /api/search
           method: get
-    initializer: null # Explicitly set to null if not needed
-    description: Hello World serverless function for Alibaba Cloud
+      - http:
+          path: /api/search/recommendations
+          method: get
+      - http:
+          path: /api/search/trending
+          method: get
+    initializer: null
+    description: OpenSearch API for product search and recommendations
+    memorySize: 512
+    timeout: 10
