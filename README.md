@@ -36,13 +36,40 @@ export ALICLOUD_SECRET_KEY=<your-access-key-secret>
 export ALICLOUD_ACCOUNT_ID=<your-account-id>
 ```
 
-3. Build the TypeScript code:
+## Local Development
+
+You can test your functions locally without deploying to Alibaba Cloud:
+
+1. Start the local development server:
+
+```bash
+npm run dev
+```
+
+This will start a local Express server that simulates the Alibaba Cloud Function environment. The server will:
+- Watch for file changes and automatically restart
+- Map HTTP routes to your handler functions
+- Simulate the event and context objects
+
+2. Test your function:
+
+```bash
+# Using curl
+curl http://localhost:3000/hello?name=YourName
+
+# Or open in your browser
+http://localhost:3000/hello?name=YourName
+```
+
+## Deployment
+
+1. Build the TypeScript code:
 
 ```bash
 npm run build
 ```
 
-4. Deploy to Alibaba Cloud:
+2. Deploy to Alibaba Cloud:
 
 ```bash
 serverless deploy
@@ -56,8 +83,9 @@ serverless deploy
 ├── package.json          # Project dependencies
 ├── tsconfig.json         # TypeScript configuration
 └── src/
+    ├── local.ts          # Local development server
     └── handlers/
-        └── hello.ts     # Function handler
+        └── hello.ts      # Function handler
 ```
 
 ## Testing
