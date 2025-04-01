@@ -4,6 +4,7 @@ provider:
   name: aliyun
   runtime: nodejs10
   credentials: ~/.aliyun_credentials
+  region: cn-shanghai # Default region, can be overridden
 
 plugins:
   - serverless-aliyun-function-compute
@@ -13,6 +14,13 @@ package:
     - package-lock.json
     - .gitignore
     - .git/**
+    - src/**
+    - node_modules/**
+    - lib/**
+    - tsconfig.json
+    - index.d.ts
+  include:
+    - index.js
 
 functions:
   hello:
@@ -21,3 +29,5 @@ functions:
       - http:
           path: /foo
           method: get
+    initializer: null # Explicitly set to null if not needed
+    description: Hello World serverless function for Alibaba Cloud
