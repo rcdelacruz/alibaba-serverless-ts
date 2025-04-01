@@ -6,7 +6,7 @@ export interface FCEvent {
   httpMethod: string;
   headers: Record<string, string>;
   queryParameters: Record<string, string>;
-  pathParameters: Record<string, string>;
+  pathParameters?: Record<string, string>;
   body: string;
   isBase64Encoded: boolean;
 }
@@ -46,6 +46,27 @@ export interface FCResponse {
 
 // Callback type
 export type FCCallback = (error: Error | null, response: FCResponse) => void;
+
+// Product Search Params
+export interface ProductSearchParams {
+  keyword?: string;
+  category?: string;
+  page?: number;
+  pageSize?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  sort?: string;
+}
+
+// Function to initialize OpenSearch client
+export function initializeOpenSearch(credentials: FCContext['credentials']): any;
+
+// Function to parse query parameters
+export function parseQueryParams(event: FCEvent): ProductSearchParams;
+
+// Function to format error response
+export function formatErrorResponse(error: any): FCResponse;
 
 // Hello function type
 export function hello(event: FCEvent, context: FCContext, callback: FCCallback): void;
