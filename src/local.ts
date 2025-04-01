@@ -55,6 +55,12 @@ const mockProducts = [
   }
 ];
 
+// Define custom error for TypeScript compatibility
+interface CustomError extends Error {
+  code?: number;
+  requestId?: string;
+}
+
 // Mock OpenSearch responses
 const mockOpenSearchResponse = (items: any[], total: number, page: number, pageSize: number) => {
   return {
@@ -164,7 +170,7 @@ function handleRequest(req: express.Request, res: express.Response) {
           })
         })),
         OpenSearchError: jest.fn().mockImplementation((message, code) => {
-          const error = new Error(message);
+          const error = new Error(message) as CustomError;
           error.code = code;
           return error;
         })
