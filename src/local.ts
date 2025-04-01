@@ -1,7 +1,7 @@
 // src/local.ts - Local development server for Alibaba Function Compute
 import express from 'express';
 import bodyParser from 'body-parser';
-import { hello } from '../index';
+import { hello, FCEvent, FCContext, FCResponse } from '../index';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,7 +14,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.all('/foo', async (req, res) => {
   try {
     // Create mock event object similar to Alibaba Function Compute's event
-    const event = {
+    const event: FCEvent = {
       path: req.path,
       httpMethod: req.method,
       headers: req.headers as Record<string, string>,
@@ -25,7 +25,7 @@ app.all('/foo', async (req, res) => {
     };
 
     // Create mock context object
-    const context = {
+    const context: FCContext = {
       requestId: `local-${Date.now()}`,
       credentials: {
         accessKeyId: 'local-dev-key-id',
@@ -50,7 +50,7 @@ app.all('/foo', async (req, res) => {
     };
 
     // Call the handler function with callback pattern
-    hello(event, context, (err: Error | null, response: any) => {
+    hello(event, context, (err: Error | null, response: FCResponse) => {
       if (err) {
         console.error('Error in function execution:', err);
         return res.status(500).json({ error: 'Internal Server Error' });
@@ -60,7 +60,7 @@ app.all('/foo', async (req, res) => {
         // Set headers from the response
         if (response.headers) {
           Object.entries(response.headers).forEach(([key, value]) => {
-            res.setHeader(key, value as string);
+            res.setHeader(key, value);
           });
         }
         
