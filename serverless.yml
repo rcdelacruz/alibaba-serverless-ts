@@ -1,30 +1,19 @@
-# serverless.yml
-
-service: alibaba-nodejs-ts
-
+service: serverless-aliyun-hello-world
 provider:
   name: aliyun
-  runtime: nodejs14
-  credentials: ~/.aliyun/credentials # Path to your Alibaba Cloud credentials file
-  region: cn-hangzhou
-
+  runtime: nodejs8
+  credentials: ~/.aliyun_credentials # path must be absolute
 plugins:
   - serverless-aliyun-function-compute
-  - serverless-typescript
-
 package:
-  excludeDevDependencies: true
-  include:
-    - src/**
   exclude:
-    - node_modules/**
+    - package-lock.json
     - .gitignore
     - .git/**
-
 functions:
   hello:
-    handler: src/handlers/hello.handler
+    handler: index.hello
     events:
       - http:
-          path: hello
+          path: /foo
           method: get
