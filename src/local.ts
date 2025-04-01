@@ -1,7 +1,7 @@
-// src/local.ts - Local development server
+// src/local.ts - Local development server for Alibaba Function Compute
 import express from 'express';
 import bodyParser from 'body-parser';
-import { handler } from './handlers/hello';
+import { hello } from '../index';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,10 +10,10 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Simulate Alibaba Cloud Function environment
-app.all('/hello', async (req, res) => {
+// Simulate Alibaba Function Compute environment
+app.all('/foo', async (req, res) => {
   try {
-    // Create mock event object similar to Alibaba Cloud Function's event
+    // Create mock event object similar to Alibaba Function Compute's event
     const event = {
       path: req.path,
       httpMethod: req.method,
@@ -34,7 +34,7 @@ app.all('/hello', async (req, res) => {
       },
       function: {
         name: 'hello',
-        handler: 'hello.handler',
+        handler: 'index.hello',
         memory: 128,
         timeout: 60
       },
@@ -49,20 +49,33 @@ app.all('/hello', async (req, res) => {
       accountId: 'local-account'
     };
 
-    // Call the handler function
-    const response = await handler(event, context);
-    
-    // Set headers from the response
-    Object.entries(response.headers).forEach(([key, value]) => {
-      res.setHeader(key, value);
+    // Call the handler function with callback pattern
+    hello(event, context, (err: Error | null, response: any) => {
+      if (err) {
+        console.error('Error in function execution:', err);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      }
+      
+      try {
+        // Set headers from the response
+        if (response.headers) {
+          Object.entries(response.headers).forEach(([key, value]) => {
+            res.setHeader(key, value as string);
+          });
+        }
+        
+        // Send the response
+        const statusCode = response.statusCode || 200;
+        const body = response.isBase64Encoded 
+          ? Buffer.from(response.body, 'base64') 
+          : response.body;
+          
+        res.status(statusCode).send(body);
+      } catch (error) {
+        console.error('Error sending response:', error);
+        res.status(500).json({ error: 'Error processing response' });
+      }
     });
-    
-    // Send the response
-    res.status(response.statusCode).send(
-      response.isBase64Encoded 
-        ? Buffer.from(response.body, 'base64') 
-        : response.body
-    );
     
   } catch (error) {
     console.error('Error calling handler:', error);
@@ -73,5 +86,5 @@ app.all('/hello', async (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Local development server running at http://localhost:${PORT}`);
-  console.log(`📝 Try: http://localhost:${PORT}/hello?name=Developer`);
+  console.log(`📝 Try: http://localhost:${PORT}/foo?name=Developer`);
 });
