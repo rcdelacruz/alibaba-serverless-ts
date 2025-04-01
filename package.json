@@ -1,0 +1,27 @@
+{
+  "name": "alibaba-nodejs-ts",
+  "version": "1.0.0",
+  "description": "Serverless TypeScript sample for Alibaba Cloud Functions",
+  "main": "handler.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"No tests specified\" && exit 0",
+    "deploy": "npm run build && serverless deploy"
+  },
+  "keywords": [
+    "serverless",
+    "typescript",
+    "alibaba",
+    "aliyun"
+  ],
+  "dependencies": {
+    "typescript": "^4.9.5"
+  },
+  "devDependencies": {
+    "@types/node": "^18.15.0",
+    "serverless": "^3.28.1",
+    "serverless-aliyun-function-compute": "^3.2.11",
+    "serverless-typescript": "^1.1.9",
+    "ts-node": "^10.9.1"
+  }
+}
