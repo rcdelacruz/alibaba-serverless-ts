@@ -6,10 +6,12 @@
   "scripts": {
     "test": "echo \"No tests specified\" && exit 0",
     "deploy": "serverless deploy",
+    "deploy:assisted": "chmod +x ./deploy.sh && ./deploy.sh",
     "install-plugin": "npm install --save-dev github:aliyun/serverless-aliyun-function-compute",
     "build": "tsc",
     "dev": "ts-node-dev --respawn src/local.ts",
-    "start:local": "node lib/src/local.js"
+    "start:local": "node lib/src/local.js",
+    "remove": "serverless remove"
   },
   "keywords": [
     "serverless",
